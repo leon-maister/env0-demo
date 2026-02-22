@@ -1,0 +1,11 @@
+version: 1
+
+deploy:
+  steps:
+    terraformPlan:
+      before:
+        - echo "--- Start of env0 Demo ---"
+        - echo "Everything is working!"
+    terraformApply:
+      after:
+        - echo "--- Success! ---"
