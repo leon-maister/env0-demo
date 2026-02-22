@@ -12,7 +12,7 @@ deploy:
             exit 1
           fi
 
-        - "echo '--- Debug: OIDC token claims (iss/aud/sub/exp/iat) ---'"
+        - "echo '--- Debug: Decode JWT payload (iss/aud/sub/exp/iat) ---'"
         - |
           set -e
 
@@ -20,7 +20,7 @@ deploy:
             local in="$1"
             # base64url -> base64
             in="${in//-/+}"
-            in="${in//_//}"
+            in="${in//_/\/}"
             # add padding
             local mod=$(( ${#in} % 4 ))
             if [ $mod -eq 2 ]; then in="${in}=="
@@ -29,7 +29,7 @@ deploy:
               echo "Invalid base64url length"
               return 1
             fi
-            echo "$in" | base64 -d
+            echo "$in" | base64 --decode
           }
 
           PAYLOAD_B64=$(echo "$ENV0_OIDC_TOKEN" | cut -d "." -f2)
@@ -42,7 +42,7 @@ deploy:
 
           echo "$PAYLOAD_JSON" | jq '{iss, aud, sub, exp, iat}'
 
-        - "echo '--- Debug: JWT header (alg/kid/typ) ---'"
+        - "echo '--- Debug: Decode JWT header (alg/kid/typ) ---'"
         - |
           HEADER_B64=$(echo "$ENV0_OIDC_TOKEN" | cut -d "." -f1)
           HEADER_JSON=$(b64url_decode "$HEADER_B64" 2>/dev/null || true)
