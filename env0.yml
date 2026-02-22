@@ -1,30 +1,27 @@
-version: 1
+version: 2
 
 deploy:
   steps:
     terraformPlan:
       before:
-        - "echo '--- Step 1: Authentication ---'"
+        - "echo '--- Step 1: Passwordless Auth with Akeyless OIDC ---'"
         - |
-          # 1. Get Authentication Token
-          AUTH_JSON=$(printf '{"access-id":"%s", "access-key":"%s", "access-type":"access_key"}' "$AKEYLESS_ACCESS_ID" "$AKEYLESS_ACCESS_KEY")
-          
+          # We use the automatic OIDC token provided by env0
+          # Replace 'YOUR_OIDC_AUTH_METHOD_NAME' with the name you just gave in Akeyless
           AUTH_RESPONSE=$(curl -s -X POST "https://api.akeyless.io/auth" \
             -H "Content-Type: application/json" \
-            -d "$AUTH_JSON")
+            -d "{\"access-id\":\"YOUR_OIDC_AUTH_METHOD_NAME\", \"jwt\":\"$ENV0_OIDC_TOKEN\"}")
           
           AKEYLESS_TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.token')
           
           if [ "$AKEYLESS_TOKEN" == "null" ] || [ -z "$AKEYLESS_TOKEN" ]; then
-            echo "AUTH ERROR: $AUTH_RESPONSE"
+            echo "OIDC AUTH ERROR: $AUTH_RESPONSE"
             exit 1
           fi
-          echo "DEBUG: Token acquired successfully."
+          echo "Success: Authenticated via OIDC."
 
-          # 2. Fetch Secret Value using the same shell session
-          echo "--- Step 2: Fetching Secret Value ---"
-          
-          # Create JSON body safely using printf to avoid quote issues
+        - "echo '--- Step 2: Fetching Secret ---'"
+        - |
           DATA_JSON=$(printf '{"names":["/MyFirstSecret"], "token":"%s"}' "$AKEYLESS_TOKEN")
           
           SECRET_RESPONSE=$(curl -s -X POST "https://api.akeyless.io/get-secret-value" \
@@ -32,6 +29,4 @@ deploy:
             -d "$DATA_JSON")
           
           SECRET_VAL=$(echo "$SECRET_RESPONSE" | jq -r '."/MyFirstSecret"')
-          
-          echo "Debug: API Response is $SECRET_RESPONSE"
           echo "Final Result - Secret Value: $SECRET_VAL"
