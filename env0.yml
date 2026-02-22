@@ -1,21 +1,17 @@
 version: 1
 
 deploy:
-  variables:
-    ENV0_OIDC_TOKEN:
-      oidc_token: true
   steps:
     terraformPlan:
       before:
         - "echo '--- Step 1: OIDC Auth ---'"
         - |
-          # Use the Akeyless Access ID from your environment variables
           AUTH_RESPONSE=$(curl -s -X POST "https://api.akeyless.io/auth" \
             -H "Content-Type: application/json" \
             -d "{\"access-id\":\"$AKEYLESS_JWT_ACCESS_ID\", \"jwt\":\"$ENV0_OIDC_TOKEN\", \"access-type\":\"jwt\"}")
-          
+
           AKEYLESS_TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.token')
-          
+
           if [ "$AKEYLESS_TOKEN" == "null" ] || [ -z "$AKEYLESS_TOKEN" ]; then
             echo "AUTH ERROR: $AUTH_RESPONSE"
             exit 1
@@ -23,12 +19,11 @@ deploy:
 
         - "echo '--- Step 2: Fetching Secret ---'"
         - |
-          # Fetch your secret: Super!-Secret!-3
           DATA_JSON=$(printf '{"names":["/MyFirstSecret"], "token":"%s"}' "$AKEYLESS_TOKEN")
-          
+
           SECRET_RESPONSE=$(curl -s -X POST "https://api.akeyless.io/get-secret-value" \
             -H "Content-Type: application/json" \
             -d "$DATA_JSON")
-          
+
           SECRET_VAL=$(echo "$SECRET_RESPONSE" | jq -r '."/MyFirstSecret"')
           echo "Final Result - Secret Value: $SECRET_VAL"
