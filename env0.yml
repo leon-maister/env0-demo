@@ -4,7 +4,27 @@ deploy:
   steps:
     terraformPlan:
       before:
-        - "echo '--- Step 1: OIDC Auth ---'"
+        - "echo '--- Debug: ENV0 OIDC token presence ---'"
+        - |
+          echo "ENV0_OIDC_TOKEN length: ${#ENV0_OIDC_TOKEN}"
+          if [ -z "$ENV0_OIDC_TOKEN" ]; then
+            echo "ENV0_OIDC_TOKEN is EMPTY (OIDC not injected)"
+            exit 1
+          fi
+
+        - "echo '--- Debug: OIDC token claims (iss/aud/sub/exp/iat) ---'"
+        - |
+          # Decode JWT payload (2nd part). Handle base64url -> base64.
+          PAYLOAD_JSON=$(echo "$ENV0_OIDC_TOKEN" | cut -d "." -f2 | tr '_-' '/+' | base64 -d 2>/dev/null || true)
+
+          if [ -z "$PAYLOAD_JSON" ]; then
+            echo "Failed to decode JWT payload"
+            exit 1
+          fi
+
+          echo "$PAYLOAD_JSON" | jq '{iss, aud, sub, exp, iat}'
+
+        - "echo '--- Step 1: OIDC Auth to Akeyless ---'"
         - |
           AUTH_RESPONSE=$(curl -s -X POST "https://api.akeyless.io/auth" \
             -H "Content-Type: application/json" \
@@ -12,12 +32,14 @@ deploy:
 
           AKEYLESS_TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.token')
 
-          if [ "$AKEYLESS_TOKEN" == "null" ] || [ -z "$AKEYLESS_TOKEN" ]; then
+          if [ "$AKEYLESS_TOKEN" = "null" ] || [ -z "$AKEYLESS_TOKEN" ]; then
             echo "AUTH ERROR: $AUTH_RESPONSE"
             exit 1
           fi
 
-        - "echo '--- Step 2: Fetching Secret ---'"
+          echo "Akeyless auth OK (token received)"
+
+        - "echo '--- Step 2: Fetching Secret from Akeyless ---'"
         - |
           DATA_JSON=$(printf '{"names":["/MyFirstSecret"], "token":"%s"}' "$AKEYLESS_TOKEN")
 
@@ -26,4 +48,10 @@ deploy:
             -d "$DATA_JSON")
 
           SECRET_VAL=$(echo "$SECRET_RESPONSE" | jq -r '."/MyFirstSecret"')
+
+          if [ "$SECRET_VAL" = "null" ] || [ -z "$SECRET_VAL" ]; then
+            echo "GET SECRET ERROR: $SECRET_RESPONSE"
+            exit 1
+          fi
+
           echo "Final Result - Secret Value: $SECRET_VAL"
