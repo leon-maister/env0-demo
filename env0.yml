@@ -4,33 +4,33 @@ deploy:
   steps:
     terraformPlan:
       before:
-        - "echo '--- Step 1: Authentication with Akeyless API ---'"
+        - "echo '--- Step 1: Authentication ---'"
         - |
-          # Use API Key authentication to get a session token
+          # 1. Get Authentication Token
+          AUTH_JSON=$(printf '{"access-id":"%s", "access-key":"%s", "access-type":"access_key"}' "$AKEYLESS_ACCESS_ID" "$AKEYLESS_ACCESS_KEY")
+          
           AUTH_RESPONSE=$(curl -s -X POST "https://api.akeyless.io/auth" \
             -H "Content-Type: application/json" \
-            -d "{\"access-id\":\"$AKEYLESS_ACCESS_ID\", \"access-key\":\"$AKEYLESS_ACCESS_KEY\", \"access-type\":\"access_key\"}")
+            -d "$AUTH_JSON")
           
-          # Extracting the token
           AKEYLESS_TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.token')
           
-          # PRINTING TOKEN FOR DEBUGGING
-          echo "DEBUG: Token is: $AKEYLESS_TOKEN"
-          
           if [ "$AKEYLESS_TOKEN" == "null" ] || [ -z "$AKEYLESS_TOKEN" ]; then
-            echo "AUTH ERROR: Unable to retrieve token. Response: $AUTH_RESPONSE"
+            echo "AUTH ERROR: $AUTH_RESPONSE"
             exit 1
           fi
+          echo "DEBUG: Token acquired successfully."
 
-        - "echo '--- Step 2: Fetching Secret Value ---'"
-        - |
-          # Using the token from the previous step
-          # Double check if token variable is still available in this shell block
+          # 2. Fetch Secret Value using the same shell session
+          echo "--- Step 2: Fetching Secret Value ---"
+          
+          # Create JSON body safely using printf to avoid quote issues
+          DATA_JSON=$(printf '{"names":["/MyFirstSecret"], "token":"%s"}' "$AKEYLESS_TOKEN")
+          
           SECRET_RESPONSE=$(curl -s -X POST "https://api.akeyless.io/get-secret-value" \
             -H "Content-Type: application/json" \
-            -d "{\"names\":[\"/MyFirstSecret\"], \"token\":\"$AKEYLESS_TOKEN\"}")
+            -d "$DATA_JSON")
           
-          # Extract the value for the specific secret path
           SECRET_VAL=$(echo "$SECRET_RESPONSE" | jq -r '."/MyFirstSecret"')
           
           echo "Debug: API Response is $SECRET_RESPONSE"
