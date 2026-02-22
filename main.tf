@@ -1,12 +1,7 @@
-terraform {
-  required_providers {
-    vault = {
-      source  = "hashicorp/vault"
-      version = "3.25.0"
-    }
-  }
+data "vault_generic_secret" "my_first_secret" {
+  path = "MyFirstSecret"
 }
 
-provider "vault" {
-  address = "https://hvp.akeyless.io"
+output "secret_check" {
+  value = "Successfully retrieved secret! Length: ${length(data.vault_generic_secret.my_first_secret.data["value"])}"
 }
