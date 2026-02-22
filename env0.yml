@@ -42,6 +42,22 @@ deploy:
 
           echo "$PAYLOAD_JSON" | jq '{iss, aud, sub, exp, iat}'
 
+        - "echo '--- Debug: JWT header (alg/kid/typ) ---'"
+        - |
+          HEADER_B64=$(echo "$ENV0_OIDC_TOKEN" | cut -d "." -f1)
+          HEADER_JSON=$(b64url_decode "$HEADER_B64" 2>/dev/null || true)
+
+          if [ -z "$HEADER_JSON" ]; then
+            echo "Failed to decode JWT header"
+            exit 1
+          fi
+
+          echo "$HEADER_JSON" | jq '{alg, kid, typ}'
+
+        - "echo '--- Debug: more claims (aud/azp/client_id) ---'"
+        - |
+          echo "$PAYLOAD_JSON" | jq '{aud, azp, client_id, iss, sub}'
+
         - "echo '--- Step 1: OIDC Auth to Akeyless ---'"
         - |
           AUTH_RESPONSE=$(curl -s -X POST "https://api.akeyless.io/auth" \
