@@ -4,7 +4,7 @@ deploy:
   steps:
     terraformPlan:
       before:
-        - echo "--- Step 1: Authentication with Akeyless API ---"
+        - "echo '--- Step 1: Authentication with Akeyless API ---'"
         - |
           # Send auth request with explicit access-type as required for API Keys
           AUTH_RESPONSE=$(curl -s -X POST "https://api.akeyless.io/auth" \
@@ -17,12 +17,12 @@ deploy:
           # Validation check
           if [ "$AKEYLESS_TOKEN" == "null" ] || [ -z "$AKEYLESS_TOKEN" ]; then
             echo "AUTH ERROR: Unable to retrieve token. Full response below:"
-            echo $AUTH_RESPONSE
+            echo "$AUTH_RESPONSE"
             exit 1
           fi
           echo "Success: Token acquired."
 
-        - echo "--- Step 2: Fetching Secret Value ---"
+        - "echo '--- Step 2: Fetching Secret Value ---'"
         - |
           # Request secret value using the acquired token
           SECRET_RESPONSE=$(curl -s -X POST "https://api.akeyless.io/get-secret-value" \
