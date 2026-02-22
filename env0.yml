@@ -24,7 +24,7 @@ deploy:
 
         - "echo '--- Step 1: OIDC Auth to Akeyless ---'"
         - |
-          AUTH_RESPONSE=$(curl -i -s -X POST "https://api.akeyless.io/auth" \
+          AUTH_RESPONSE=$(curl -s -X POST "https://api.akeyless.io/auth" \
             -H "Content-Type: application/json" \
             -d "{\"access-id\":\"$AKEYLESS_JWT_ACCESS_ID\", \"jwt\":\"$ENV0_OIDC_TOKEN\", \"access-type\":\"jwt\"}")
 
