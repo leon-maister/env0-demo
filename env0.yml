@@ -1,12 +1,18 @@
 version: 1
 
+# This block is CRITICAL for OIDC to work
 deploy:
+  # This tells env0 to generate and provide the OIDC token
+  variables:
+    ENV0_OIDC_TOKEN: 
+      oidc_token: true
+
   steps:
     terraformPlan:
       before:
         - "echo '--- Step 1: Passwordless OIDC Authentication ---'"
         - |
-          # The key change is adding "access-type":"jwt" so Akeyless knows what to do
+          # Now the variable $ENV0_OIDC_TOKEN will actually contain the token
           AUTH_RESPONSE=$(curl -s -X POST "https://api.akeyless.io/auth" \
             -H "Content-Type: application/json" \
             -d "{\"access-id\":\"$AKEYLESS_JWT_ACCESS_ID\", \"jwt\":\"$ENV0_OIDC_TOKEN\", \"access-type\":\"jwt\"}")
@@ -22,7 +28,7 @@ deploy:
 
         - "echo '--- Step 2: Fetching Secret ---'"
         - |
-          # Now fetch the secret using the token from Step 1
+          # Final step to get your secret value
           DATA_JSON=$(printf '{"names":["/MyFirstSecret"], "token":"%s"}' "$AKEYLESS_TOKEN")
           
           SECRET_RESPONSE=$(curl -s -X POST "https://api.akeyless.io/get-secret-value" \
