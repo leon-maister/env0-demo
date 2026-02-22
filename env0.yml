@@ -1,29 +1,15 @@
 version: 1
 
 deploy:
+  variables:
+    ENV0_OIDC_TOKEN:
+      oidc_token: true
   steps:
     terraformPlan:
       before:
-        - "echo '--- Step 1: Getting OIDC Token ---'"
+        - "echo '--- Step 1: OIDC Auth ---'"
         - |
-          # 1. First, check the environment variable
-          # 2. If empty, try to find it in the standard system path for OIDC/ID tokens
-          if [ -z "$ENV0_OIDC_TOKEN" ]; then
-            echo "Variable is empty. Looking for token in filesystem..."
-            
-            # Standard path for OIDC tokens in many containerized CI environments
-            if [ -f "/var/run/secrets/env0/oidc/token" ]; then
-              ENV0_OIDC_TOKEN=$(cat /var/run/secrets/env0/oidc/token)
-              echo "Token found in env0 secrets path!"
-            elif [ -f "$AWS_WEB_IDENTITY_TOKEN_FILE" ]; then
-              ENV0_OIDC_TOKEN=$(cat "$AWS_WEB_IDENTITY_TOKEN_FILE")
-              echo "Token found in AWS Web Identity path!"
-            else
-              echo "Error: OIDC token not found in environment or filesystem."
-            fi
-          fi
-
-          # Now try to authenticate
+          # Use the Akeyless Access ID from your environment variables
           AUTH_RESPONSE=$(curl -s -X POST "https://api.akeyless.io/auth" \
             -H "Content-Type: application/json" \
             -d "{\"access-id\":\"$AKEYLESS_JWT_ACCESS_ID\", \"jwt\":\"$ENV0_OIDC_TOKEN\", \"access-type\":\"jwt\"}")
@@ -31,14 +17,15 @@ deploy:
           AKEYLESS_TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.token')
           
           if [ "$AKEYLESS_TOKEN" == "null" ] || [ -z "$AKEYLESS_TOKEN" ]; then
-             echo "OIDC AUTH ERROR: $AUTH_RESPONSE"
-             exit 1
+            echo "AUTH ERROR: $AUTH_RESPONSE"
+            exit 1
           fi
-          echo "Success: Authenticated with Akeyless!"
 
         - "echo '--- Step 2: Fetching Secret ---'"
         - |
+          # Fetch your secret: Super!-Secret!-3
           DATA_JSON=$(printf '{"names":["/MyFirstSecret"], "token":"%s"}' "$AKEYLESS_TOKEN")
+          
           SECRET_RESPONSE=$(curl -s -X POST "https://api.akeyless.io/get-secret-value" \
             -H "Content-Type: application/json" \
             -d "$DATA_JSON")
