@@ -4,19 +4,34 @@ deploy:
   steps:
     terraformPlan:
       before:
-        - echo "--- Fetching Akeyless Token ---"
-        # 1. retrieve t-token
+        - echo "--- Step 1: Authentication with Akeyless API ---"
         - |
-          AKEYLESS_TOKEN=$(curl -s -X POST "https://api.akeyless.io/auth" \
-          -d "{\"access-id\":\"$AKEYLESS_ACCESS_ID\", \"access-key\":\"$AKEYLESS_ACCESS_KEY\"}" \
-          | jq -r '.token')
-        
-        - echo "--- Fetching Secret Value ---"
-        # 2. Retrieve the secret
-        - |
-          SECRET_VAL=$(curl -s -X POST "https://api.akeyless.io/get-secret-value" \
-          -d "{\"name\":\"/MyFirstSecret\", \"token\":\"$AKEYLESS_TOKEN\"}" \
-          | jq -r '.value')
+          # Send auth request with explicit access-type as required for API Keys
+          AUTH_RESPONSE=$(curl -s -X POST "https://api.akeyless.io/auth" \
+            -H "Content-Type: application/json" \
+            -d "{\"access-id\":\"$AKEYLESS_ACCESS_ID\", \"access-key\":\"$AKEYLESS_ACCESS_KEY\", \"access-type\":\"access_key\"}")
           
-          echo "Secret fetched successfully!"
-          echo "Value is: $SECRET_VAL"
+          # Extract token using jq
+          AKEYLESS_TOKEN=$(echo $AUTH_RESPONSE | jq -r '.token')
+          
+          # Validation check
+          if [ "$AKEYLESS_TOKEN" == "null" ] || [ -z "$AKEYLESS_TOKEN" ]; then
+            echo "AUTH ERROR: Unable to retrieve token. Full response below:"
+            echo $AUTH_RESPONSE
+            exit 1
+          fi
+          echo "Success: Token acquired."
+
+        - echo "--- Step 2: Fetching Secret Value ---"
+        - |
+          # Request secret value using the acquired token
+          SECRET_RESPONSE=$(curl -s -X POST "https://api.akeyless.io/get-secret-value" \
+            -H "Content-Type: application/json" \
+            -d "{\"name\":\"/MyFirstSecret\", \"token\":\"$AKEYLESS_TOKEN\"}")
+          
+          # Extract the actual value
+          SECRET_VAL=$(echo $SECRET_RESPONSE | jq -r '.value')
+          
+          # Output for verification
+          echo "Debug: API Response is $SECRET_RESPONSE"
+          echo "Final Result - Secret Value: $SECRET_VAL"
