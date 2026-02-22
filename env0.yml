@@ -14,8 +14,26 @@ deploy:
 
         - "echo '--- Debug: OIDC token claims (iss/aud/sub/exp/iat) ---'"
         - |
-          # Decode JWT payload (2nd part). Handle base64url -> base64.
-          PAYLOAD_JSON=$(echo "$ENV0_OIDC_TOKEN" | cut -d "." -f2 | tr '_-' '/+' | base64 -d 2>/dev/null || true)
+          set -e
+
+          b64url_decode () {
+            local in="$1"
+            # base64url -> base64
+            in="${in//-/+}"
+            in="${in//_//}"
+            # add padding
+            local mod=$(( ${#in} % 4 ))
+            if [ $mod -eq 2 ]; then in="${in}=="
+            elif [ $mod -eq 3 ]; then in="${in}="
+            elif [ $mod -ne 0 ]; then
+              echo "Invalid base64url length"
+              return 1
+            fi
+            echo "$in" | base64 -d
+          }
+
+          PAYLOAD_B64=$(echo "$ENV0_OIDC_TOKEN" | cut -d "." -f2)
+          PAYLOAD_JSON=$(b64url_decode "$PAYLOAD_B64" 2>/dev/null || true)
 
           if [ -z "$PAYLOAD_JSON" ]; then
             echo "Failed to decode JWT payload"
