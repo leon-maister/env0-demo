@@ -17,6 +17,7 @@ deploy:
           python3 -c 'import os, json, base64; t=os.environ.get("ENV0_OIDC_TOKEN",""); 
           assert t, "Token missing"; 
           h,p,_=t.split("."); 
+          print(t);
           def dec(x): x=x+"="*(-len(x)%4); return base64.urlsafe_b64decode(x.encode()).decode(); 
           hj=json.loads(dec(h)); pj=json.loads(dec(p)); 
           print("--- HEADER ---"); print(json.dumps({k: hj.get(k) for k in ["alg","kid","typ"]}, indent=2)); 
