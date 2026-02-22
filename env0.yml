@@ -12,31 +12,15 @@ deploy:
             exit 1
           fi
 
-        - "echo '--- Debug: Decode JWT using Python ---'"
+        - "echo '--- Debug: Decode JWT (header+payload) via python3 ---'"
         - |
-          python3 - <<'EOF'
-import os, json, base64
-
-token = os.environ.get("ENV0_OIDC_TOKEN")
-if not token:
-    print("Token missing")
-    exit(1)
-
-header_b64, payload_b64, _ = token.split(".")
-
-def b64url_decode(data):
-    data += "=" * (-len(data) % 4)
-    return base64.urlsafe_b64decode(data.encode()).decode()
-
-header = json.loads(b64url_decode(header_b64))
-payload = json.loads(b64url_decode(payload_b64))
-
-print("\n--- HEADER ---")
-print(json.dumps({k: header.get(k) for k in ["alg", "kid", "typ"]}, indent=2))
-
-print("\n--- PAYLOAD ---")
-print(json.dumps({k: payload.get(k) for k in ["iss", "aud", "sub", "azp", "client_id", "exp", "iat"]}, indent=2))
-EOF
+          python3 -c 'import os, json, base64; t=os.environ.get("ENV0_OIDC_TOKEN",""); 
+          assert t, "Token missing"; 
+          h,p,_=t.split("."); 
+          def dec(x): x=x+"="*(-len(x)%4); return base64.urlsafe_b64decode(x.encode()).decode(); 
+          hj=json.loads(dec(h)); pj=json.loads(dec(p)); 
+          print("--- HEADER ---"); print(json.dumps({k: hj.get(k) for k in ["alg","kid","typ"]}, indent=2)); 
+          print("--- PAYLOAD ---"); print(json.dumps({k: pj.get(k) for k in ["iss","aud","sub","azp","client_id","exp","iat"]}, indent=2))'
 
         - "echo '--- Step 1: OIDC Auth to Akeyless ---'"
         - |
