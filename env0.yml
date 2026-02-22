@@ -1,17 +1,18 @@
 version: 1
 
-# Генерируем OIDC токен на верхнем уровне
+# Переменные на самом верхнем уровне
 variables:
-  ENV0_OIDC_TOKEN: 
+  ENV0_OIDC_TOKEN:
     oidc_token: true
 
+# Затем основной блок деплоя
 deploy:
   steps:
     terraformPlan:
       before:
-        - "echo '--- Step 1: Passwordless OIDC Authentication ---'"
+        - "echo '--- Step 1: OIDC Auth ---'"
         - |
-          # Теперь переменная ENV0_OIDC_TOKEN точно будет доступна
+          # Теперь переменная точно подхватится
           AUTH_RESPONSE=$(curl -s -X POST "https://api.akeyless.io/auth" \
             -H "Content-Type: application/json" \
             -d "{\"access-id\":\"$AKEYLESS_JWT_ACCESS_ID\", \"jwt\":\"$ENV0_OIDC_TOKEN\", \"access-type\":\"jwt\"}")
@@ -19,14 +20,13 @@ deploy:
           AKEYLESS_TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.token')
           
           if [ "$AKEYLESS_TOKEN" == "null" ] || [ -z "$AKEYLESS_TOKEN" ]; then
-            echo "OIDC AUTH ERROR: $AUTH_RESPONSE"
+            echo "AUTH ERROR: $AUTH_RESPONSE"
             exit 1
           fi
-          echo "Success: Authenticated via OIDC."
 
         - "echo '--- Step 2: Fetching Secret ---'"
         - |
-          # Получаем твой секрет Super!-Secret!-3
+          # Получаем значение твоего секрета
           DATA_JSON=$(printf '{"names":["/MyFirstSecret"], "token":"%s"}' "$AKEYLESS_TOKEN")
           
           SECRET_RESPONSE=$(curl -s -X POST "https://api.akeyless.io/get-secret-value" \
