@@ -26,7 +26,8 @@ provider "akeyless" {
   api_gateway_address = "https://gw-aws.lm.cs.akeyless.fans/api/v2"
 
   jwt_login {
-    access_id  = var.akeyless_access_id
+    access_id  = var.AKEYLESS_JWT_ACCESS_ID
+    jwt=var.JWT_VALUE
  }
 }
 
