@@ -25,10 +25,9 @@ terraform {
 provider "akeyless" {
   api_gateway_address = "https://gw-aws.lm.cs.akeyless.fans/api/v2"
 
-  api_key_login {
+  jwt_login {
     access_id  = var.akeyless_access_id
-    access_key = var.akeyless_access_key
-  }
+ }
 }
 
 # ===========================================
