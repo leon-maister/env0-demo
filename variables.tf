@@ -8,3 +8,16 @@ variable "akeyless_access_key" {
   type        = string
   sensitive   = true
 }
+
+variable "AKEYLESS_JWT_ACCESS_ID" { 
+  description = "JWT Access"
+  type        = string
+  sensitive   = true
+}
+
+variable "JWT_VALUE" { 
+  description = "JWT VALUE"
+  type        = string
+  sensitive   = true
+}
+
